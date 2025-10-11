@@ -1,15 +1,15 @@
 import os
 
-from PIL.ImageFont import load_path
-from PySide6 import QtWidgets
 import sys
 
+from PySide6 import QtWidgets
 from PySide6.QtGui import Qt
+
 from config import load_config
 from config import save_config
 from record_util import start, stop, toggle_pause
 
-
+# 录屏工具
 class MyWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -82,8 +82,8 @@ class MyWidget(QtWidgets.QWidget):
         os.startfile(os.path.join('records'))
     def setup_ui(self) -> None:
         """设置界面"""
-        self.resize(300, 80)
-
+        # self.resize(300, 80)
+        self.setFixedSize(300, 96)
         self.message_box = QtWidgets.QMessageBox(
             QtWidgets.QMessageBox.Icon.Warning,
             "温馨提示",
@@ -91,16 +91,16 @@ class MyWidget(QtWidgets.QWidget):
             QtWidgets.QMessageBox.StandardButton.Ok,
             self,
         )
-
-        self.record_env = QtWidgets.QLabel("环境正常" if load_config() else "您还未配置FFmpeg路径", self)
+        cfg = load_config()
+        self.record_env = QtWidgets.QLabel(f"环境正常" if cfg else "您还未配置FFmpeg路径", self)
         self.record_env.setStyleSheet("color: green;" if load_config() else "color: red;")
 
         self.record_status = QtWidgets.QLabel("", self)
 
-        browse_btn = QtWidgets.QPushButton("选择文件", self)
+        browse_btn = QtWidgets.QPushButton("配置FFmpeg", self)
         browse_btn.clicked.connect(self.dialog.open)  # type: ignore
 
-        self.dialog.fileSelected.connect(lambda path: [save_config(path), self.record_env.setText("环境正常"), self.record_env.setStyleSheet("color: green;")])  # type: ignore
+        self.dialog.fileSelected.connect(lambda path: [save_config(path), self.record_env.setText(f"环境正常"), self.record_env.setStyleSheet("color: green;")])  # type: ignore
 
         self.pause_btn = QtWidgets.QPushButton("开始", self)
         self.pause_btn.clicked.connect(self.pause_record)
