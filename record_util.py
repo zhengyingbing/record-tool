@@ -1,11 +1,9 @@
-# ffmpeg_recorder.py
 import os, sys, time, threading, subprocess, ctypes
 from datetime import datetime
+from pathlib import Path
+
 from PIL import ImageGrab
 import winsound
-
-
-from config import load_config
 
 # ----------- 配置 -----------
 CFG = {
@@ -37,10 +35,15 @@ def start():
     w, h = get_screen_wh()
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     out_path = os.path.join(CFG["output_dir"], f"{ts}.mp4")
-    path = load_config()
-    # path = 'ffmpeg.exe'
+    if getattr(sys, 'frozen', False):
+        base_dir = Path(getattr(sys, '_MEIPASS'))
+    else:
+        base_dir = Path(__file__).parent
+    print(base_dir)
+    path = base_dir / 'assets/ffmpeg.exe'
+    full_path = path.resolve()
     cmd = [
-        path, "-y",
+        full_path, "-y",
         "-f", "rawvideo",
         "-pix_fmt", "rgb24",
         "-s", f"{w}x{h}",

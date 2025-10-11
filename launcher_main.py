@@ -1,12 +1,10 @@
 import os
+from pathlib import Path
 
 import sys
 
 from PySide6 import QtWidgets
 from PySide6.QtGui import Qt
-
-from config import load_config
-from config import save_config
 from record_util import start, stop, toggle_pause
 
 # 录屏工具
@@ -16,17 +14,9 @@ class MyWidget(QtWidgets.QWidget):
         self.setWindowTitle("量子录屏")
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint )
 
-        self.dialog = QtWidgets.QFileDialog(self)
-        self.setup_dialog()
         self.setup_ui()
 
     def start_record(self):
-        # self.showMinimized()
-        if not load_config():
-            self.record_env.setText("您还未配置FFmpeg路径")
-            self.record_env.setStyleSheet("color: red;")
-            self.message_box.open()
-            return
         print('开始录屏')
         try:
             start()
@@ -36,11 +26,7 @@ class MyWidget(QtWidgets.QWidget):
             self.record_env.setStyleSheet("color: red;")
 
     def pause_record(self):
-        if not load_config():
-            self.record_env.setText("您还未配置FFmpeg路径")
-            self.record_env.setStyleSheet("color: red;")
-            self.message_box.open()
-            return
+
         if '开始' in self.pause_btn.text():
             self.record_status.setText('录屏中...')
             self.record_status.setStyleSheet("color: red;")
@@ -66,41 +52,13 @@ class MyWidget(QtWidgets.QWidget):
         self.pause_btn.setText('开始')
         stop()
 
-    def setup_dialog(self) -> None:
-        """配置对话框属性功能"""
-        self.dialog.setAcceptMode(QtWidgets.QFileDialog.AcceptMode.AcceptOpen)  # 打开模式
-        self.dialog.setNameFilter("可执行文件(*.exe)")
-        self.dialog.setFileMode(QtWidgets.QFileDialog.FileMode.ExistingFiles)  # 选择现有文件
-        self.dialog.setLabelText(
-            QtWidgets.QFileDialog.DialogLabel.Accept, "选择"
-        )  # 为「接受」按键指定文本
-        self.dialog.setLabelText(
-            QtWidgets.QFileDialog.DialogLabel.Reject, "取消"
-        )  # 为「拒绝」按键指定文本
-
     def open_dir(self):
         os.startfile(os.path.join('records'))
     def setup_ui(self) -> None:
         """设置界面"""
         # self.resize(300, 80)
-        self.setFixedSize(300, 96)
-        self.message_box = QtWidgets.QMessageBox(
-            QtWidgets.QMessageBox.Icon.Warning,
-            "温馨提示",
-            "请先下载FFmpeg并配置，注意配置到.../bin/ffmpeg.exe",
-            QtWidgets.QMessageBox.StandardButton.Ok,
-            self,
-        )
-        cfg = load_config()
-        self.record_env = QtWidgets.QLabel(f"环境正常" if cfg else "您还未配置FFmpeg路径", self)
-        self.record_env.setStyleSheet("color: green;" if load_config() else "color: red;")
-
+        self.setFixedSize(220, 96)
         self.record_status = QtWidgets.QLabel("", self)
-
-        browse_btn = QtWidgets.QPushButton("配置FFmpeg", self)
-        browse_btn.clicked.connect(self.dialog.open)  # type: ignore
-
-        self.dialog.fileSelected.connect(lambda path: [save_config(path), self.record_env.setText(f"环境正常"), self.record_env.setStyleSheet("color: green;")])  # type: ignore
 
         self.pause_btn = QtWidgets.QPushButton("开始", self)
         self.pause_btn.clicked.connect(self.pause_record)
@@ -116,9 +74,7 @@ class MyWidget(QtWidgets.QWidget):
         layout1 = QtWidgets.QBoxLayout(QtWidgets.QBoxLayout.LeftToRight)
         layout2 = QtWidgets.QBoxLayout(QtWidgets.QBoxLayout.LeftToRight)
 
-        layout0.addWidget(self.record_env)
         layout0.addWidget(self.record_status)
-        layout1.addWidget(browse_btn)
         layout1.addWidget(open_btn)
         layout2.addWidget(self.pause_btn)
         layout2.addWidget(stop_btn)
@@ -133,6 +89,25 @@ class MyWidget(QtWidgets.QWidget):
     def closeEvent(self, event):
         stop()
         event.accept()
+
+
+def get_resource_path(relative_path):
+    """获取资源文件的绝对路径，兼容开发环境和打包环境"""
+    try:
+        # 打包后的环境
+        if getattr(sys, 'frozen', False):
+            base_dir = Path(sys.executable).parent
+        else:
+            # 开发环境：假设这个代码文件在项目根目录或子目录中
+            base_dir = Path(__file__).parent
+
+        # 构建完整路径
+        full_path = base_dir / relative_path
+        return full_path
+
+    except Exception as e:
+        print(f"获取资源路径错误: {e}")
+        return Path(relative_path)  # 返回相对路径作为后备
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
